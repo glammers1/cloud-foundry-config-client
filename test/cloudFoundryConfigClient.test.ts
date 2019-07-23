@@ -443,7 +443,7 @@ describe("getLoaderConfig", () => {
       }.yml`
     );
   });
-  test("returns RemoteLoaderConfig", async () => {
+  test("returns RemoteLoaderConfig with vcap_services.json", async () => {
     const configParams: ConfigParams = {
       appName: "testApp",
       profile: "test",
@@ -489,6 +489,56 @@ describe("getLoaderConfig", () => {
     expect(appName).toEqual(configParams.appName);
     expect(profile).toEqual(configParams.profile);
     expect(uri).toEqual("http://localhost:8888");
+  });
+  test("returns RemoteLoaderConfig with vcap_services_p.config-server.json", async () => {
+    const loadVcapServicesFuncWithDot = vcap_services => {
+      return loadVcapServices(vcap_services, "./test/vcap_services_p.config-server.json");
+    };
+    const configParams: ConfigParams = {
+      appName: "testApp",
+      profile: "test",
+      configServerName: "test-config",
+      configLocation: "remote"
+    };
+    const loaderConfig = await getLoaderConfig(
+      configParams,
+      loadVcapServicesFuncWithDot
+    );
+    const {
+      appName,
+      profile,
+      uri,
+      access_token_uri,
+      client_id,
+      client_secret
+    } = <RemoteLoaderConfig>loaderConfig;
+    expect(appName).toEqual(configParams.appName);
+    expect(profile).toEqual(configParams.profile);
+    expect(uri).toEqual("local.config");
+    expect(access_token_uri).toEqual("local.token");
+    expect(client_id).toEqual("id");
+    expect(client_secret).toEqual("secret");
+  });
+  test("throws an exception instead of a RemoteLoaderConfig with an invalid vcap_services", async () => {
+    const loadVcapServicesFuncInvalid = vcap_services => {
+      return loadVcapServices(vcap_services, "./test/vcap_services_invalid.json");
+    };
+    const configParams: ConfigParams = {
+      appName: "testApp",
+      profile: "test",
+      configServerName: "test-config",
+      configLocation: "remote"
+    };
+    let error;
+    try {
+      await getLoaderConfig(
+        configParams,
+        loadVcapServicesFuncInvalid
+      );
+    } catch (e) {
+      error = e;
+    }
+    expect(error).toEqual(new Error("Either `p-config-server` or `p.config-server` must be defined on VCAP_SERVICES"));
   });
 });
 

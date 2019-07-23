@@ -240,8 +240,16 @@ export function getLoaderConfig(
   let loaderConfig: LoaderConfig;
   if (configLocation === "remote") {
     const vcap_services = loadVcapServicesFunc(process.env.VCAP_SERVICES);
-    const { credentials } = vcap_services["p-config-server"].find(
-      cfg => cfg.name === configServerName
+    let configServerJsonServiceName: string;
+    if (vcap_services["p-config-server"]) {
+      configServerJsonServiceName = "p-config-server";
+    } else if (vcap_services["p.config-server"]) {
+      configServerJsonServiceName = "p.config-server";
+    } else {
+      throw new Error("Either `p-config-server` or `p.config-server` must be defined on VCAP_SERVICES");
+    }
+    const { credentials } = vcap_services[`${configServerJsonServiceName}`].find(
+        cfg => cfg.name === configServerName
     );
     loaderConfig = {
       appName,
